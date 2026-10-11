@@ -1,0 +1,804 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Bạn Mơ Đi Ăn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;500;600&display=swap">
+<style>
+  /* Bố cục: nhân vật cố định bên trái (hoặc thanh trên cùng ở màn hình nhỏ), 5 món và hóa đơn thành lưới bên phải. Tông màu lấy từ gạch men và ghế nhựa quán vỉa hè. */
+  :root {
+    --bg: #e6efec;
+    --surface: #f8fcfa;
+    --fg: #17302b;
+    --muted: #4b6860;
+    --accent: #c93522;
+    --accent-ink: #ffffff;
+    --line: #b7cbc4;
+    --tile: #d7e6e0;
+    --bubble: #ffffff;
+    --shadow: rgb(23 48 43 / 0.14);
+    --font-display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+    --font-body: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10201d;
+      --surface: #182c28;
+      --fg: #e8f3ef;
+      --muted: #a2bcb4;
+      --accent: #ff7a63;
+      --accent-ink: #1a0d0a;
+      --line: #2f4a44;
+      --tile: #223a35;
+      --bubble: #243d37;
+      --shadow: rgb(0 0 0 / 0.4);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10201d;
+    --surface: #182c28;
+    --fg: #e8f3ef;
+    --muted: #a2bcb4;
+    --accent: #ff7a63;
+    --accent-ink: #1a0d0a;
+    --line: #2f4a44;
+    --tile: #223a35;
+    --bubble: #243d37;
+    --shadow: rgb(0 0 0 / 0.4);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    padding-inline: 16px;
+    padding-block: 20px 40px;
+  }
+  .wrap { max-width: 1180px; margin-inline: auto; display: flex; flex-direction: column; gap: 16px; }
+  header { display: flex; flex-direction: column; gap: 4px; }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(2rem, 6vw, 3.1rem);
+    line-height: 1;
+    margin: 0;
+    text-wrap: balance;
+  }
+  header p { margin: 0; color: var(--muted); max-width: 60ch; }
+
+  .layout { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+  /* Sân khấu nhân vật */
+  .stage {
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 10px 12px;
+    box-shadow: 0 6px 16px var(--shadow);
+    min-width: 0;
+  }
+  .char { width: 112px; margin-inline: auto; border-radius: 24px; }
+  .char svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .stage.target .char { outline: 3px dashed var(--accent); outline-offset: 6px; }
+
+  .talk { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .bubble {
+    position: relative;
+    background: var(--bubble);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px 12px;
+    font-size: 0.88rem;
+    line-height: 1.4;
+    min-height: calc(3 * 1.4em + 20px);
+    display: flex;
+    align-items: center;
+  }
+  .bubble::before {
+    content: "";
+    position: absolute;
+    left: -7px;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    background: var(--bubble);
+    border-left: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    transform: translateY(-50%) rotate(45deg);
+  }
+  .bubble.pop { animation: pop 0.25s ease-out; }
+  @keyframes pop { from { transform: scale(0.96); } to { transform: scale(1); } }
+
+  .meter-top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
+  .meter-top span:last-child { font-variant-numeric: tabular-nums; }
+  .meter { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 2px; }
+  .meter span { height: 12px; border-radius: 3px; background: var(--line); transition: background 0.25s; }
+  .meter span.on { background: var(--accent); }
+  .hint { display: none; margin: 0; font-size: 0.82rem; color: var(--muted); }
+
+  /* Nhân vật */
+  .torso { transform-box: fill-box; transform-origin: 50% 100%; transform: scale(var(--sx, 1), var(--sy, 1)); transition: transform 0.5s ease; }
+  .eyes { transform-box: fill-box; transform-origin: center; animation: blink 4.5s infinite; }
+  @keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
+  .eyes-happy { display: none; }
+  .stage.full .eyes { display: none; }
+  .stage.full .eyes-happy { display: inline; }
+  .m-open { display: none; transform-box: fill-box; transform-origin: 50% 30%; }
+  .stage.open .m-open, .stage.chew .m-open { display: inline; }
+  .stage.open .m-closed, .stage.chew .m-closed { display: none; }
+  .stage.chew .m-open { animation: chew 0.3s ease-in-out infinite alternate; }
+  @keyframes chew { from { transform: scale(0.9, 0.45); } to { transform: scale(1, 1); } }
+
+  /* Thực đơn */
+  .menu { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; min-width: 0; }
+  .dish {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    border-radius: 16px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  @media (pointer: fine) { .dish { cursor: grab; } .dish:active { cursor: grabbing; } }
+  @media (hover: hover) { .dish:hover { border-color: var(--accent); transform: translateY(-2px); } }
+  .dish:active { transform: scale(0.97); }
+  .dish:focus-visible, .btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .art { position: relative; background: var(--tile); border-radius: 10px; aspect-ratio: 200 / 170; max-width: 100%; }
+  .art svg { display: block; width: 100%; height: 100%; pointer-events: none; }
+  .dish.done .art svg { opacity: 0.75; }
+  .dish.done .art::after {
+    content: "Hết";
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
+    font-size: 0.75rem;
+    padding: 1px 8px;
+    border-radius: 999px;
+  }
+  .name { font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; line-height: 1.1; padding-inline: 2px; text-wrap: balance; }
+  .desc { font-size: 0.78rem; color: var(--muted); line-height: 1.35; padding-inline: 2px; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding-inline: 2px; margin-top: auto; }
+  .price { font-weight: 600; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  .pips { display: inline-flex; gap: 4px; }
+  .pips i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+  .pips i.on { background: var(--accent); }
+
+  .bill {
+    border: 1px dashed var(--line);
+    border-radius: 16px;
+    padding: 12px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+  .bill h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; line-height: 1; margin: 0; }
+  .bill ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .bill li { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 0.8rem; border-bottom: 1px dotted var(--line); padding-bottom: 3px; }
+  .bill li span { min-width: 0; }
+  .bill li b { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .bill .empty { margin: 0; font-size: 0.8rem; color: var(--muted); }
+  .total { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: auto; }
+  .total strong { font-family: var(--font-display); font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .note { margin: 0; font-size: 0.72rem; color: var(--muted); }
+  .btn {
+    appearance: none;
+    border: 0;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: 600 0.9rem var(--font-body);
+    border-radius: 10px;
+    padding: 12px 14px;
+    min-height: 44px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  footer { font-size: 0.75rem; color: var(--muted); }
+
+  .bit {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #4a3426;
+    pointer-events: none;
+    z-index: 50;
+  }
+  .ghost {
+    position: fixed;
+    width: 96px;
+    z-index: 60;
+    pointer-events: none;
+    transform: translate(-50%, -50%) rotate(-4deg);
+    background: var(--tile);
+    border-radius: 12px;
+    box-shadow: 0 8px 20px var(--shadow);
+  }
+  .ghost svg { display: block; width: 100%; height: auto; }
+
+  /* Hiệu ứng ăn trên hình món */
+  .f { transition: opacity 0.3s ease, transform 0.3s ease; transform-box: fill-box; transform-origin: center; }
+  .f.gone { opacity: 0; transform: translateY(-8px) scale(0.4); }
+  .lvl { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(var(--lvl, 1)); transition: transform 0.4s ease, opacity 0.3s; }
+  .lvl.zero { opacity: 0; }
+  .steam { animation: steam 2.4s ease-in-out infinite; }
+  @keyframes steam { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.9; } }
+
+  @media (min-width: 640px) {
+    .stage { grid-template-columns: 150px minmax(0, 1fr); padding: 14px 16px; gap: 16px; }
+    .char { width: 150px; }
+    .bubble { font-size: 0.95rem; }
+    .hint { display: block; }
+  }
+  @media (min-width: 1000px) {
+    .layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 24px; align-items: start; }
+    .stage { grid-template-columns: minmax(0, 1fr); top: 16px; padding: 20px; gap: 14px; }
+    .char { width: 100%; max-width: 250px; }
+    .bubble::before { left: 50%; top: -7px; transform: translateX(-50%) rotate(135deg); }
+    .bubble { justify-content: center; text-align: center; }
+    .menu { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .dish { padding: 10px; }
+  }
+  /* Điện thoại xoay ngang: nhân vật nằm cột trái, món bên phải */
+  @media (min-width: 640px) and (max-height: 520px) {
+    .layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 16px; align-items: start; }
+    .stage { grid-template-columns: minmax(0, 1fr); top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 10px; gap: 8px; }
+    .char { width: 96px; max-width: 96px; }
+    .hint { display: none; }
+    .bubble { font-size: 0.85rem; text-align: center; justify-content: center; }
+    .bubble::before { left: 50%; top: -7px; transform: translateX(-50%) rotate(135deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Bạn Mơ đi ăn</h1>
+    <p>Mơ đang đói. Cho Mơ ăn năm món quen thuộc của quán vỉa hè, mỗi món có 4 miếng.</p>
+  </header>
+
+  <div class="layout">
+    <section class="stage" id="stage" aria-label="Bạn Mơ">
+      <div class="char" id="charWrap">
+        <svg id="char" viewBox="0 0 240 260" role="img" aria-label="Nhân vật Mơ đội nón lá, miệng đang chờ ăn">
+          <g class="legs" fill="#e9a93a" stroke="#5b3a1e" stroke-width="3">
+            <ellipse cx="88" cy="244" rx="24" ry="12"/>
+            <ellipse cx="152" cy="244" rx="24" ry="12"/>
+          </g>
+          <g class="torso">
+            <ellipse cx="120" cy="150" rx="92" ry="94" fill="#f7c24a" stroke="#5b3a1e" stroke-width="3.5"/>
+            <ellipse cx="120" cy="196" rx="56" ry="40" fill="#fde6a6"/>
+          </g>
+          <g fill="#f7c24a" stroke="#5b3a1e" stroke-width="3">
+            <ellipse cx="32" cy="172" rx="16" ry="22" transform="rotate(20 32 172)"/>
+            <ellipse cx="208" cy="172" rx="16" ry="22" transform="rotate(-20 208 172)"/>
+          </g>
+          <g>
+            <path d="M120 14 L52 74 Q120 96 188 74 Z" fill="#ecd699" stroke="#5b3a1e" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M120 14 L86 84 M120 14 L120 92 M120 14 L154 84 M66 66 Q120 88 174 66" stroke="#c9ae6a" stroke-width="2" fill="none"/>
+            <path d="M68 80 Q60 108 72 128 M172 80 Q180 108 168 128" stroke="#c93522" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+          </g>
+          <g class="eyes" fill="#2b1a10">
+            <circle cx="92" cy="122" r="9.5"/>
+            <circle cx="148" cy="122" r="9.5"/>
+            <circle cx="89" cy="118.5" r="3.2" fill="#fff"/>
+            <circle cx="145" cy="118.5" r="3.2" fill="#fff"/>
+          </g>
+          <g class="eyes-happy" fill="none" stroke="#2b1a10" stroke-width="4.5" stroke-linecap="round">
+            <path d="M82 126 Q92 112 102 126"/>
+            <path d="M138 126 Q148 112 158 126"/>
+          </g>
+          <g fill="#f08a7a" opacity="0.6">
+            <ellipse cx="70" cy="146" rx="12" ry="8"/>
+            <ellipse cx="170" cy="146" rx="12" ry="8"/>
+          </g>
+          <path class="m-closed" d="M104 146 Q120 162 136 146" fill="none" stroke="#2b1a10" stroke-width="4" stroke-linecap="round"/>
+          <g class="m-open">
+            <ellipse cx="120" cy="154" rx="19" ry="16" fill="#5a1d1a" stroke="#2b1a10" stroke-width="3"/>
+            <ellipse cx="120" cy="162" rx="11" ry="6" fill="#e8737a"/>
+          </g>
+          <circle id="mouthPt" cx="120" cy="154" r="4" fill="none"/>
+        </svg>
+      </div>
+      <div class="talk">
+        <div class="bubble" id="bubble" role="status" aria-live="polite">Mơ đói bụng rồi! Bấm vào một món để cho Mơ ăn.</div>
+        <div>
+          <div class="meter-top"><span>Độ no của Mơ</span><span id="meterText">0/20 miếng</span></div>
+          <div class="meter" id="meter" aria-hidden="true"></div>
+        </div>
+        <p class="hint">Bấm vào món, hoặc dùng chuột kéo món thả vào miệng Mơ.</p>
+      </div>
+    </section>
+
+    <div class="menu" id="menu">
+      <aside class="bill" id="bill" aria-label="Hóa đơn">
+        <h2>Hóa đơn</h2>
+        <ul id="billList"></ul>
+        <p class="empty" id="billEmpty">Chưa gọi món nào. Cho Mơ ăn thử một miếng nhé.</p>
+        <div class="total"><span>Tổng</span><strong id="billTotal">0đ</strong></div>
+        <p class="note">Giá chỉ để minh họa.</p>
+        <button type="button" class="btn" id="resetBtn">Gọi lại từ đầu</button>
+      </aside>
+    </div>
+  </div>
+
+  <footer>Hình món ăn và nhân vật được vẽ bằng SVG.</footer>
+</div>
+
+<script>
+(function () {
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var CAP = 20;
+  var LV = [1, 0.74, 0.48, 0.24, 0];
+  function money(n) { return n.toLocaleString('vi-VN') + 'đ'; }
+
+  var ART = {
+    bundau: `<svg viewBox="0 0 200 170" aria-hidden="true" focusable="false">
+      <g stroke="#4a3426" stroke-width="2" stroke-linejoin="round">
+        <ellipse cx="100" cy="102" rx="92" ry="62" fill="#c99a5b"/>
+        <ellipse cx="100" cy="102" rx="78" ry="50" fill="#ebcb92"/>
+        <path d="M36 92 Q100 72 164 92 M30 110 Q100 90 170 110 M42 130 Q100 112 158 130" fill="none" stroke="#c99a5b" stroke-width="2" opacity="0.6"/>
+        <g class="f" data-b="4">
+          <ellipse cx="50" cy="80" rx="16" ry="8" transform="rotate(-30 50 80)" fill="#5fae4b"/>
+          <ellipse cx="66" cy="72" rx="15" ry="7" transform="rotate(20 66 72)" fill="#7ac35e"/>
+          <ellipse cx="54" cy="66" rx="12" ry="6" transform="rotate(-75 54 66)" fill="#4f9a41"/>
+        </g>
+        <g class="f" data-b="3">
+          <ellipse cx="88" cy="86" rx="14" ry="9" fill="#a39440"/>
+          <ellipse cx="96" cy="102" rx="12" ry="8" fill="#93873a"/>
+          <path d="M82 84 h4 M92 88 h4 M91 101 h4 M100 104 h3" stroke="#5f5a22" stroke-width="2" stroke-linecap="round"/>
+        </g>
+        <g class="f" data-b="2">
+          <rect x="34" y="100" width="38" height="30" rx="7" fill="#fff9ee"/>
+          <path d="M42 110 h22 M42 118 h22" stroke="#d9cdb4" stroke-width="2" stroke-linecap="round"/>
+        </g>
+        <g class="f" data-b="4">
+          <rect x="76" y="116" width="34" height="26" rx="7" fill="#fff9ee"/>
+          <path d="M83 125 h20 M83 133 h20" stroke="#d9cdb4" stroke-width="2" stroke-linecap="round"/>
+        </g>
+        <path d="M112 56 h44 q-3 26 -22 26 q-19 0 -22 -26z" fill="#f4f0e6"/>
+        <ellipse cx="134" cy="56" rx="22" ry="6" fill="#8e6b85"/>
+        <ellipse cx="128" cy="55" rx="5" ry="2.4" fill="#d7372b" stroke="none"/>
+        <ellipse cx="140" cy="57" rx="5" ry="2.4" fill="#d7372b" stroke="none"/>
+        <path d="M92 58 a9 9 0 0 1 18 0 z" fill="#a6d64f"/>
+        <g class="f" data-b="1">
+          <rect x="116" y="92" width="24" height="22" rx="5" fill="#e9ac3a"/>
+          <path d="M121 99 h14" stroke="#f6cd72" stroke-width="3" stroke-linecap="round"/>
+        </g>
+        <g class="f" data-b="3">
+          <rect x="140" y="108" width="24" height="22" rx="5" fill="#e9ac3a"/>
+          <path d="M145 115 h14" stroke="#f6cd72" stroke-width="3" stroke-linecap="round"/>
+        </g>
+        <g class="f" data-b="4">
+          <rect x="116" y="118" width="22" height="18" rx="5" fill="#e9ac3a"/>
+          <path d="M121 124 h12" stroke="#f6cd72" stroke-width="3" stroke-linecap="round"/>
+        </g>
+      </g>
+    </svg>`,
+
+    bonuong: `<svg viewBox="0 0 200 170" aria-hidden="true" focusable="false">
+      <g stroke="#4a3426" stroke-width="2" stroke-linejoin="round">
+        <ellipse cx="100" cy="110" rx="92" ry="56" fill="#f8f5ee"/>
+        <ellipse cx="100" cy="110" rx="76" ry="42" fill="none" stroke="#d3cbb8"/>
+        <ellipse cx="44" cy="98" rx="20" ry="14" fill="#8ccf62"/>
+        <ellipse cx="52" cy="112" rx="18" ry="10" fill="#6fb552"/>
+        <path d="M150 118 h30 q-2 18 -15 18 q-13 0 -15 -18z" fill="#fffdf8"/>
+        <ellipse cx="165" cy="118" rx="15" ry="4.5" fill="#d9902f"/>
+        <ellipse cx="160" cy="118" rx="3.5" ry="1.8" fill="#d7372b" stroke="none"/>
+        <g class="f" data-b="4"><g transform="translate(86 120) rotate(6)">
+          <rect x="-30" y="-11" width="60" height="22" rx="11" fill="#6b7b30"/>
+          <path d="M-16 -8 v16 M-3 -10 v20 M10 -9 v18 M20 -7 v14" stroke="#3f4c1c" stroke-width="3" stroke-linecap="round"/>
+          <ellipse cx="29" cy="0" rx="3.5" ry="7.5" fill="#94502f"/>
+        </g></g>
+        <g class="f" data-b="2"><g transform="translate(82 92) rotate(-10)">
+          <rect x="-30" y="-11" width="60" height="22" rx="11" fill="#6b7b30"/>
+          <path d="M-16 -8 v16 M-3 -10 v20 M10 -9 v18 M20 -7 v14" stroke="#3f4c1c" stroke-width="3" stroke-linecap="round"/>
+          <ellipse cx="29" cy="0" rx="3.5" ry="7.5" fill="#94502f"/>
+        </g></g>
+        <g class="f" data-b="3"><g transform="translate(118 114) rotate(-6)">
+          <rect x="-30" y="-11" width="60" height="22" rx="11" fill="#6b7b30"/>
+          <path d="M-16 -8 v16 M-3 -10 v20 M10 -9 v18 M20 -7 v14" stroke="#3f4c1c" stroke-width="3" stroke-linecap="round"/>
+          <ellipse cx="29" cy="0" rx="3.5" ry="7.5" fill="#94502f"/>
+        </g></g>
+        <g class="f" data-b="1"><g transform="translate(118 86) rotate(12)">
+          <rect x="-30" y="-11" width="60" height="22" rx="11" fill="#6b7b30"/>
+          <path d="M-16 -8 v16 M-3 -10 v20 M10 -9 v18 M20 -7 v14" stroke="#3f4c1c" stroke-width="3" stroke-linecap="round"/>
+          <ellipse cx="29" cy="0" rx="3.5" ry="7.5" fill="#94502f"/>
+        </g></g>
+      </g>
+    </svg>`,
+
+    bunrieu: `<svg viewBox="0 0 200 170" aria-hidden="true" focusable="false">
+      <g class="f" data-b="4"><g class="steam" fill="none" stroke="#8fa39d" stroke-width="3" stroke-linecap="round">
+        <path d="M78 46 q-7 -9 0 -18 q7 -9 0 -18"/>
+        <path d="M100 44 q-7 -9 0 -18 q7 -9 0 -18"/>
+        <path d="M122 46 q-7 -9 0 -18 q7 -9 0 -18"/>
+      </g></g>
+      <g stroke="#4a3426" stroke-width="2" stroke-linejoin="round">
+        <path d="M20 82 Q22 152 100 152 Q178 152 180 82 Z" fill="#f6f1e6"/>
+        <path d="M23 102 Q100 126 177 102" fill="none" stroke="#3f72b8" stroke-width="5"/>
+        <path d="M30 120 Q100 142 170 120" fill="none" stroke="#3f72b8" stroke-width="3"/>
+        <ellipse cx="100" cy="82" rx="80" ry="24" fill="#fffdf7"/>
+        <ellipse cx="100" cy="83" rx="70" ry="19" fill="#e4663a"/>
+        <g class="f" data-b="4" fill="none" stroke-linecap="round">
+          <path d="M60 90 q10 -7 20 0 t20 0 t20 0 t20 0" stroke="#fffaf0" stroke-width="4"/>
+          <path d="M70 80 q10 -6 20 0 t20 0 t20 0" stroke="#fffaf0" stroke-width="4"/>
+          <ellipse cx="140" cy="76" rx="9" ry="4" transform="rotate(-20 140 76)" fill="#5fae4b" stroke="#4a3426" stroke-width="1.5"/>
+          <ellipse cx="60" cy="76" rx="9" ry="4" transform="rotate(20 60 76)" fill="#7ac35e" stroke="#4a3426" stroke-width="1.5"/>
+        </g>
+        <g class="f" data-b="1">
+          <ellipse cx="72" cy="80" rx="15" ry="8" fill="#f6c76a"/>
+          <path d="M62 79 h6 M74 83 h6" stroke="#d99a3a" stroke-width="2" stroke-linecap="round"/>
+        </g>
+        <g class="f" data-b="2">
+          <ellipse cx="130" cy="86" rx="15" ry="8" fill="#f6c76a"/>
+          <path d="M122 85 h6 M133 89 h6" stroke="#d99a3a" stroke-width="2" stroke-linecap="round"/>
+          <path d="M92 90 q10 -9 22 0 q-11 7 -22 0z" fill="#cf3a2b"/>
+        </g>
+        <g class="f" data-b="3">
+          <ellipse cx="102" cy="73" rx="14" ry="7" fill="#f6c76a"/>
+          <path d="M94 72 h6 M105 76 h6" stroke="#d99a3a" stroke-width="2" stroke-linecap="round"/>
+          <rect x="82" y="86" width="11" height="9" rx="2" fill="#e9ac3a"/>
+          <rect x="146" y="84" width="11" height="9" rx="2" fill="#e9ac3a"/>
+        </g>
+      </g>
+    </svg>`,
+
+    trasua: `<svg viewBox="0 0 200 170" aria-hidden="true" focusable="false">
+      <defs><clipPath id="cupClip"><path d="M64 44 L136 44 L124 152 Q123 158 117 158 L83 158 Q77 158 76 152 Z"/></clipPath></defs>
+      <path d="M64 44 L136 44 L124 152 Q123 158 117 158 L83 158 Q77 158 76 152 Z" fill="#fdfbf7" opacity="0.4"/>
+      <g clip-path="url(#cupClip)">
+        <g class="lvl">
+          <rect x="60" y="60" width="80" height="100" fill="#c99a6b"/>
+          <rect x="60" y="60" width="80" height="6" fill="#dcb98c"/>
+        </g>
+        <g class="f" data-b="3" fill="#2b1a14">
+          <circle cx="90" cy="129" r="5.5"/><circle cx="102" cy="129" r="5.5"/>
+          <circle cx="84" cy="138" r="5.5"/><circle cx="96" cy="138" r="5.5"/><circle cx="108" cy="138" r="5.5"/>
+        </g>
+        <g class="f" data-b="4" fill="#2b1a14">
+          <circle cx="82" cy="148" r="5.5"/><circle cx="93" cy="148" r="5.5"/>
+          <circle cx="104" cy="148" r="5.5"/><circle cx="115" cy="148" r="5.5"/>
+        </g>
+      </g>
+      <path d="M64 44 L136 44 L124 152 Q123 158 117 158 L83 158 Q77 158 76 152 Z" fill="none" stroke="#4a3426" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M72 62 L78 140" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+      <rect x="58" y="34" width="84" height="12" rx="5" fill="#f1f1ec" stroke="#4a3426" stroke-width="2.5"/>
+      <path d="M118 120 L118 36 L132 8" fill="none" stroke="#4a3426" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M118 120 L118 36 L132 8" fill="none" stroke="#e5658a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="78" y="82" width="34" height="20" rx="4" fill="#fffaf0" stroke="#4a3426" stroke-width="1.5"/>
+      <text x="95" y="95.5" text-anchor="middle" font-size="8" font-weight="700" fill="#7a3e2b" textLength="28" lengthAdjust="spacingAndGlyphs">TRÀ SỮA</text>
+    </svg>`,
+
+    hutieu: `<svg viewBox="0 0 200 170" aria-hidden="true" focusable="false">
+      <g class="f" data-b="4"><g class="steam" fill="none" stroke="#8fa39d" stroke-width="3" stroke-linecap="round">
+        <path d="M78 46 q-7 -9 0 -18 q7 -9 0 -18"/>
+        <path d="M100 44 q-7 -9 0 -18 q7 -9 0 -18"/>
+        <path d="M122 46 q-7 -9 0 -18 q7 -9 0 -18"/>
+      </g></g>
+      <g stroke="#4a3426" stroke-width="2" stroke-linejoin="round">
+        <path d="M20 82 Q22 152 100 152 Q178 152 180 82 Z" fill="#f6f1e6"/>
+        <path d="M23 102 Q100 126 177 102" fill="none" stroke="#d94a3a" stroke-width="5"/>
+        <path d="M30 120 Q100 142 170 120" fill="none" stroke="#d94a3a" stroke-width="3"/>
+        <ellipse cx="100" cy="82" rx="80" ry="24" fill="#fffdf7"/>
+        <ellipse cx="100" cy="83" rx="70" ry="19" fill="#dfa04a"/>
+        <g class="f" data-b="4" fill="none" stroke="#f7dd80" stroke-width="3.5" stroke-linecap="round">
+          <path d="M54 80 q8 -8 16 0 t16 0 t16 0 t16 0 t16 0"/>
+          <path d="M60 93 q8 -7 16 0 t16 0 t16 0 t16 0"/>
+        </g>
+        <g class="f" data-b="3" fill="none" stroke="#fffaf0" stroke-width="5" stroke-linecap="round">
+          <path d="M56 88 q10 -7 20 0 t20 0"/>
+          <path d="M100 90 q10 -6 20 0 t18 0"/>
+        </g>
+        <g class="f" data-b="1" fill="none" stroke-linecap="round">
+          <path d="M108 72 q20 -8 24 8 q0 8 -9 9" stroke="#7a3a22" stroke-width="11"/>
+          <path d="M108 72 q20 -8 24 8 q0 8 -9 9" stroke="#f39a6b" stroke-width="7"/>
+          <path d="M72 72 q-20 -8 -24 8 q0 8 9 9" stroke="#7a3a22" stroke-width="11"/>
+          <path d="M72 72 q-20 -8 -24 8 q0 8 9 9" stroke="#f39a6b" stroke-width="7"/>
+        </g>
+        <g class="f" data-b="2" stroke="#4a3426" stroke-width="1.8">
+          <ellipse cx="88" cy="88" rx="14" ry="7" fill="#f2c6b8"/>
+          <ellipse cx="124" cy="92" rx="13" ry="6.5" fill="#f2c6b8"/>
+        </g>
+        <g class="f" data-b="3" stroke="#4a3426" stroke-width="1.8">
+          <ellipse cx="66" cy="86" rx="9" ry="7" fill="#fffaf0"/>
+          <circle cx="66" cy="86" r="3.2" fill="#f0b43a" stroke="none"/>
+          <ellipse cx="142" cy="86" rx="9" ry="7" fill="#fffaf0"/>
+          <circle cx="142" cy="86" r="3.2" fill="#f0b43a" stroke="none"/>
+          <g fill="#7a4a35" stroke="none">
+            <circle cx="98" cy="78" r="2.4"/><circle cx="104" cy="82" r="2.4"/><circle cx="94" cy="83" r="2.4"/><circle cx="108" cy="77" r="2.4"/>
+          </g>
+        </g>
+        <g class="f" data-b="4" fill="#b8e08a" stroke="#3f9a42" stroke-width="2">
+          <circle cx="80" cy="76" r="2.6"/><circle cx="118" cy="72" r="2.6"/><circle cx="134" cy="94" r="2.6"/><circle cx="64" cy="94" r="2.6"/><circle cx="100" cy="94" r="2.6"/>
+        </g>
+      </g>
+    </svg>`
+  };
+
+  var DISHES = [
+    { id: 'bundau', name: 'Bún đậu mắm tôm', price: 45000, color: '#eab13f',
+      desc: 'Mẹt bún lá, đậu hũ chiên, chả cốm, mắm tôm',
+      lines: ['Đậu hũ chiên vàng giòn, chấm mắm tôm là mê.', 'Bún lá chấm mắm tôm vắt quất, thơm nồng.', 'Chả cốm thơm mùi cốm, thêm miếng đậu nữa.', 'Cuốn rau với bún cho hết mẹt, sạch bóng luôn.'] },
+    { id: 'bonuong', name: 'Bò nướng lá lốt', price: 40000, color: '#6b7b30',
+      desc: '4 cuốn lá lốt nướng than, chấm mắm nêm',
+      lines: ['Lá lốt nướng thơm lừng, thịt bò mềm ngọt.', 'Chấm mắm nêm cay nhẹ, ăn với rau sống.', 'Cháy cạnh một chút mới đã, dậy mùi khói than.', 'Cuốn cuối cùng rồi, ăn xong vẫn còn thèm.'] },
+    { id: 'bunrieu', name: 'Bún riêu', price: 40000, color: '#e4663a',
+      desc: 'Gạch cua, cà chua, đậu hũ chiên',
+      lines: ['Gạch cua béo ngậy, nước riêu chua nhẹ vị cà.', 'Miếng cà chua mềm ngọt, thấm đẫm nước riêu.', 'Đậu hũ chiên thấm nước riêu, béo thơm.', 'Gắp sạch bún với rau, húp nốt nước riêu cho ấm bụng.'] },
+    { id: 'trasua', name: 'Trà sữa', price: 35000, color: '#c99a6b',
+      desc: 'Ly lớn trà sữa trân châu',
+      lines: ['Ngọt mát lạnh, vị trà đậm.', 'Hút nghe rột rột, trân châu dai dai.', 'Sắp hết ly, trân châu nằm đầy dưới đáy.', 'Sạch ly, kể cả trân châu.'] },
+    { id: 'hutieu', name: 'Hủ tiếu mì nước đặc biệt', price: 50000, color: '#f39a6b',
+      desc: 'Tôm, thịt, trứng cút, mì và hủ tiếu',
+      lines: ['Con tôm tươi giòn ngọt, nước lèo ngọt thanh.', 'Thịt heo xắt mỏng mềm, nhúng nước lèo là ngon.', 'Trứng cút bùi, thịt bằm thơm, sợi hủ tiếu dai dai.', 'Mì vàng gắp sạch, húp nốt nước lèo cho ấm bụng.'] }
+  ];
+
+  var stage = document.getElementById('stage');
+  var charEl = document.getElementById('char');
+  var bubble = document.getElementById('bubble');
+  var menu = document.getElementById('menu');
+  var billEl = document.getElementById('bill');
+  var meter = document.getElementById('meter');
+  var meterText = document.getElementById('meterText');
+  var billList = document.getElementById('billList');
+  var billEmpty = document.getElementById('billEmpty');
+  var billTotal = document.getElementById('billTotal');
+
+  var state = {};
+  var ordered = [];
+  var total = 0;
+  var chewT = null;
+  var GREETING = 'Mơ đói bụng rồi! Bấm vào một món để cho Mơ ăn.';
+
+  for (var i = 0; i < CAP; i++) meter.appendChild(document.createElement('span'));
+
+  DISHES.forEach(function (d) {
+    state[d.id] = 0;
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'dish';
+    b.dataset.id = d.id;
+    b.innerHTML = '<div class="art">' + ART[d.id] + '</div>' +
+      '<div class="name">' + d.name + '</div>' +
+      '<div class="desc">' + d.desc + '</div>' +
+      '<div class="row"><span class="price">' + money(d.price) + '</span><span class="pips" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>';
+    menu.insertBefore(b, billEl);
+  });
+
+  function dishById(id) { return DISHES.filter(function (d) { return d.id === id; })[0]; }
+  function cardOf(id) { return menu.querySelector('.dish[data-id="' + id + '"]'); }
+
+  function say(t) {
+    bubble.textContent = t;
+    bubble.classList.remove('pop');
+    void bubble.offsetWidth;
+    bubble.classList.add('pop');
+  }
+
+  function applyBites(id) {
+    var n = state[id];
+    var svg = cardOf(id).querySelector('svg');
+    svg.querySelectorAll('.f').forEach(function (el) {
+      el.classList.toggle('gone', n >= Number(el.dataset.b));
+    });
+    svg.querySelectorAll('.lvl').forEach(function (el) {
+      el.style.setProperty('--lvl', LV[n]);
+      el.classList.toggle('zero', n >= 4);
+    });
+  }
+
+  function renderCard(d) {
+    var card = cardOf(d.id);
+    var left = 4 - state[d.id];
+    card.querySelectorAll('.pips i').forEach(function (p, i) { p.classList.toggle('on', i < left); });
+    card.classList.toggle('done', left === 0);
+    card.setAttribute('aria-label', left ? 'Cho Mơ ăn ' + d.name + ', còn ' + left + ' miếng' : d.name + ', đã hết');
+  }
+
+  function sumBill() {
+    return ordered.reduce(function (s, id) { return s + dishById(id).price; }, 0);
+  }
+
+  function renderBill() {
+    billList.innerHTML = ordered.map(function (id) {
+      var d = dishById(id);
+      return '<li><span>' + d.name + '</span><b>' + money(d.price) + '</b></li>';
+    }).join('');
+    billEmpty.hidden = ordered.length > 0;
+    billTotal.textContent = money(sumBill());
+  }
+
+  function updateMeter() {
+    meter.querySelectorAll('span').forEach(function (s, i) { s.classList.toggle('on', i < total); });
+    meterText.textContent = total + '/' + CAP + ' miếng';
+    var r = total / CAP;
+    stage.style.setProperty('--sx', String(1 + 0.12 * r));
+    stage.style.setProperty('--sy', String(1 + 0.05 * r));
+  }
+
+  function bump() {
+    if (reduce || !charEl.animate) return;
+    charEl.animate([
+      { transform: 'translateY(0) scale(1)' },
+      { transform: 'translateY(-6px) scale(1.03)' },
+      { transform: 'translateY(0) scale(1)' }
+    ], { duration: 280, easing: 'ease-out' });
+  }
+
+  function shake() {
+    if (reduce || !charEl.animate) return;
+    charEl.animate([
+      { transform: 'translateX(0)' }, { transform: 'translateX(-6px)' },
+      { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }
+    ], { duration: 260 });
+  }
+
+  function fly(rect, color, done) {
+    if (reduce || !document.body.animate) { done(); return; }
+    var mouth = document.getElementById('mouthPt').getBoundingClientRect();
+    var tx = mouth.left + mouth.width / 2, ty = mouth.top + mouth.height / 2;
+    var sx = rect.left + rect.width / 2, sy = rect.top + rect.height / 2;
+    var el = document.createElement('div');
+    el.className = 'bit';
+    el.style.background = color;
+    document.body.appendChild(el);
+    var mx = (sx + tx) / 2, my = Math.min(sy, ty) - 60;
+    var a = el.animate([
+      { transform: 'translate(' + (sx - 8) + 'px,' + (sy - 8) + 'px) scale(1.2)' },
+      { transform: 'translate(' + (mx - 8) + 'px,' + (my - 8) + 'px) scale(1)', offset: 0.5 },
+      { transform: 'translate(' + (tx - 8) + 'px,' + (ty - 8) + 'px) scale(0.4)' }
+    ], { duration: 420, easing: 'cubic-bezier(.3,.1,.6,1)' });
+    a.onfinish = function () { el.remove(); done(); };
+  }
+
+  function feed(d, rect) {
+    if (total >= CAP) {
+      say('Mơ no căng bụng rồi, không nhét thêm được nữa. Tính tiền thôi!');
+      shake();
+      return;
+    }
+    if (state[d.id] >= 4) {
+      say('Món này hết sạch rồi, chọn món khác cho Mơ nhé.');
+      shake();
+      return;
+    }
+    clearTimeout(chewT);
+    var n = ++state[d.id];
+    total++;
+    try { if (navigator.vibrate) navigator.vibrate(12); } catch (err) { /* thiết bị không hỗ trợ rung */ }
+    if (n === 1) ordered.push(d.id);
+    applyBites(d.id);
+    renderCard(d);
+    updateMeter();
+    renderBill();
+    say(d.lines[n - 1]);
+    stage.classList.remove('chew');
+    stage.classList.add('open');
+    fly(rect, d.color, function () {
+      stage.classList.remove('open');
+      stage.classList.add('chew');
+      bump();
+      chewT = setTimeout(function () {
+        stage.classList.remove('chew');
+        if (total >= CAP) {
+          stage.classList.add('full');
+          say('Mơ no căng bụng rồi! Tính tiền thôi nhé, cả bàn hết ' + money(sumBill()) + '.');
+        }
+      }, 650);
+    });
+  }
+
+  function reset() {
+    clearTimeout(chewT);
+    total = 0;
+    ordered = [];
+    DISHES.forEach(function (d) { state[d.id] = 0; applyBites(d.id); renderCard(d); });
+    stage.classList.remove('open', 'chew', 'full', 'target');
+    updateMeter();
+    renderBill();
+    say(GREETING);
+  }
+
+  document.getElementById('resetBtn').addEventListener('click', reset);
+
+  /* Bấm để cho ăn */
+  var suppress = false;
+  menu.addEventListener('click', function (e) {
+    var card = e.target.closest('.dish');
+    if (!card || suppress) return;
+    feed(dishById(card.dataset.id), card.querySelector('.art').getBoundingClientRect());
+  });
+
+  /* Kéo thả bằng chuột */
+  var drag = null;
+  function overChar(e) {
+    var r = charEl.getBoundingClientRect();
+    var p = 14;
+    return e.clientX >= r.left - p && e.clientX <= r.right + p && e.clientY >= r.top - p && e.clientY <= r.bottom + p;
+  }
+  function moveGhost(e) {
+    drag.ghost.style.left = e.clientX + 'px';
+    drag.ghost.style.top = e.clientY + 'px';
+  }
+  menu.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'touch' || e.button !== 0) return;
+    var card = e.target.closest('.dish');
+    if (!card) return;
+    drag = { card: card, sx: e.clientX, sy: e.clientY, ghost: null };
+  });
+  window.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    if (!drag.ghost) {
+      if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 8) return;
+      var g = document.createElement('div');
+      g.className = 'ghost';
+      g.innerHTML = drag.card.querySelector('.art').innerHTML;
+      document.body.appendChild(g);
+      drag.ghost = g;
+    }
+    moveGhost(e);
+    var over = overChar(e);
+    stage.classList.toggle('target', over);
+    if (!stage.classList.contains('chew')) stage.classList.toggle('open', over);
+  });
+  function endDrag(e, drop) {
+    if (!drag) return;
+    var d = drag;
+    drag = null;
+    stage.classList.remove('target');
+    if (!d.ghost) return;
+    var rect = d.ghost.getBoundingClientRect();
+    d.ghost.remove();
+    suppress = true;
+    setTimeout(function () { suppress = false; }, 0);
+    if (drop && overChar(e)) {
+      feed(dishById(d.card.dataset.id), rect);
+    } else if (!stage.classList.contains('chew')) {
+      stage.classList.remove('open');
+    }
+  }
+  window.addEventListener('pointerup', function (e) { endDrag(e, true); });
+  window.addEventListener('pointercancel', function (e) { endDrag(e, false); });
+
+  DISHES.forEach(function (d) { renderCard(d); });
+  updateMeter();
+  renderBill();
+})();
+</script>
+
+</body></html>
